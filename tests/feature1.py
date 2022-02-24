@@ -3,29 +3,32 @@ def parse_args(parser):
 
 
 def test_module_setup(tc):
-    tc.logger.info('Init of the feature1.py')
-    return {'mod': 'hello'}
+    tc.logger.info(tc.framework_module_setup_output)
+    return {'test module setup': 'tc-mod'}
 
 
 def test_module_cleanup(tc):
-    tc.logger.info('Cleanup of the feature1.py')
+    pass
 
 
 def test_case_setup(tc):
-    tc.logger.info('Init of the testcase.py')
-    return {'test': 'kiran'}
+    tc.logger.info(tc.framework_module_setup_output)
+    tc.logger.info(tc.test_module_setup_output)
+    tc.logger.info(tc.framework_case_setup_output)
+    return {'test case setup': 'tc-case'}
 
 
 def test_case_cleanup(tc):
-    tc.logger.info('Cleanup of the testcase.py')
+    pass
 
 
 def test_case1(tc):
     """
     Basic sanity test
     """
-    tc.logger.info('Checking if 1+2 is 3')
-    tc.logger.info(tc.module_setup_output)
+    tc.logger.info(tc.framework_module_setup_output)
+    tc.logger.info(tc.test_module_setup_output)
+    tc.logger.info(tc.framework_case_setup_output)
     tc.logger.info(tc.test_case_setup_output)
     tc.logger.info(f"Args: {tc.args}")
     tc.logger.info('Dump the contents of file a')

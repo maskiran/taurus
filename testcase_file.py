@@ -4,6 +4,7 @@ import importlib.util
 import os
 from typing import List
 from types import ModuleType
+from framework import framework_case_setup
 
 from testcase import TestCase
 
@@ -28,6 +29,10 @@ class TestCaseFile(object):
         self.file_name: str = file_name
         self.module: ModuleType = import_file(file_name)
         self.test_case_list: List[TestCase] = self._load_test_cases()
+        self.framework_module_setup: TestCase = None
+        self.framework_module_cleanup: TestCase = None
+        self.framework_case_setup: TestCase = None
+        self.framework_case_cleanup: TestCase = None
         self.test_module_setup: TestCase = self._find_test_case(
             "test_module_setup")
         self.test_module_cleanup: TestCase = self._find_test_case(
@@ -73,26 +78,70 @@ class TestCaseFile(object):
             test_cases.append(tc)
         return test_cases
 
-    def run(self, log_dir: str) -> None:
+    def run_test_cases(self, log_dir) -> None:
+        self.log_dir = log_dir
         os.chdir(os.path.dirname(self.file_name))
-        self.log_dir = os.path.join(log_dir, inspect.getmodulename(self.file_name))
         self.start_time = datetime.datetime.now()
         print(f"\n====Running {self.file_name}====")
-        mod_setup_out = None
+        framework_module_setup_output = ""
+        test_module_setup_output = ""
+        if self.framework_module_setup:
+            print(f"\n----Running {self.file_name} framework_module_setup----")
+            framework_module_setup_output = self.framework_module_setup.run(
+                self.log_dir, log_file="framework_module_setup")
         if self.test_module_setup:
             print(f"\n----Running {self.file_name} test_module_setup----")
-            mod_setup_out = self.test_module_setup.run(self.log_dir)
+            self.test_module_setup.framework_module_setup_output = framework_module_setup_output
+            test_module_setup_output = self.test_module_setup.run(
+                self.log_dir, log_file="test_module_setup")
         for tc in self.get_test_cases():
-            tc.args = self.args
-            tc.module_setup_output = mod_setup_out
-            print(f"\n----Running {self.file_name} {tc.name}----")
-            tc.run(self.log_dir, self.test_case_setup, self.test_case_cleanup)
+            tc.framework_module_setup_output = framework_module_setup_output
+            tc.test_module_setup_output = test_module_setup_output
+            self.run_test_case(tc)
         if self.test_module_cleanup:
             print(f"\n----Running {self.file_name} test_module_cleanup----")
-            self.test_module_cleanup.run(self.log_dir)
+            self.test_module_cleanup.run(
+                self.log_dir, log_file="test_module_cleanup")
+        if self.framework_module_cleanup:
+            print(
+                f"\n----Running {self.file_name} framework_module_cleanup----")
+            self.framework_module_cleanup.run(
+                self.log_dir, log_file="framework_module_cleanup")
         print(f"\n====Completed {self.file_name}====")
         self.end_time = datetime.datetime.now()
         self.duration = (self.end_time - self.start_time).total_seconds()
+
+    def run_test_case(self, tc: TestCase):
+        tc.args = self.args
+        log_file = os.path.join(self.log_dir, tc.name)
+        framework_case_setup_output = ""
+        test_case_setup_output = ""
+        # at this point tc has the outputs from framework_module, test_module
+        if self.framework_case_setup:
+            print(f"\n----Running {self.file_name} framework_case_setup----")
+            # this needs the output of framework and module level setup outputs
+            self.framework_case_setup.framework_module_setup_output = tc.framework_module_setup_output
+            self.framework_case_setup.test_module_setup_output = tc.test_module_setup_output
+            framework_case_setup_output = self.framework_case_setup.run(self.log_dir, log_file=log_file)
+        tc.framework_case_setup_output = framework_case_setup_output
+        # at this point tc has the outputs from framework_module, test_module, framework_case
+        if self.test_case_setup:
+            print(f"\n----Running {self.file_name} test_case_setup----")
+            # set up output from framework module, test module, framework case setups
+            self.test_case_setup.framework_module_setup_output = tc.framework_module_setup_output
+            self.test_case_setup.test_module_setup_output = tc.test_module_setup_output
+            self.test_case_setup.framework_case_setup_output = tc.framework_case_setup_output
+            test_case_setup_output = self.test_case_setup.run(self.log_dir, log_file=log_file)
+        tc.test_case_setup_output = test_case_setup_output
+        print(f"\n----Running {self.file_name} test_case----")
+        # at this point tc has the outputs from framework_module, framework_case, test_module, test_case
+        tc.run(self.log_dir, log_file=log_file)
+        if self.test_case_cleanup:
+            print(f"\n----Running {self.file_name} test_case_cleanup----")
+            self.test_case_cleanup.run(self.log_dir, log_file=log_file)
+        if self.framework_case_cleanup:
+            print(f"\n----Running {self.file_name} framework_case_cleanup----")
+            self.framework_case_cleanup.run(self.log_dir, log_file=log_file)
 
     def to_json(self):
         # test case has its own json encoder

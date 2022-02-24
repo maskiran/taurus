@@ -1,13 +1,15 @@
 import argparse
 import datetime
+import inspect
 import os
 from typing import List
 
 from tabulate import tabulate
-from testcase import TestCase
 
-from testcase_file import TestCaseFile
+import framework
 from report import Report
+from testcase import TestCase
+from testcase_file import TestCaseFile
 
 
 def parse_args():
@@ -108,17 +110,33 @@ def print_testcases(test_case_files: List[TestCaseFile]):
     print(tabulate(data, headers=['Id', 'File', 'TestCase', 'Description']))
 
 
-def run_test_case_files(test_case_files: List[TestCaseFile], log_dir=None):
+def run_test_case_files(test_case_files: List[TestCaseFile], run_log_dir: str = ""):
     start_time = datetime.datetime.now()
-    if log_dir is None:
-        now = datetime.datetime.now()
-        log_dir = os.path.join('logs', now.strftime('%Y-%m-%d-%H-%M-%S'))
-    log_dir = os.path.abspath(log_dir)
+    if not run_log_dir:
+        run_log_dir = os.path.join('logs', start_time.strftime('%Y-%m-%d-%H-%M-%S'))
+    run_log_dir = os.path.abspath(run_log_dir)
     for tc_file in test_case_files:
-        tc_file.run(log_dir)
+        run_test_case_file(tc_file, run_log_dir)
     end_time = datetime.datetime.now()
-    Report(test_case_files, log_dir, start_time, end_time)
-    print(f"\n====Logs {log_dir}====\n")
+    Report(test_case_files, run_log_dir, start_time, end_time)
+    print(f"\n====Logs {run_log_dir}====\n")
+
+
+def run_test_case_file(tc_file: TestCaseFile, run_log_dir: str):
+    # create a subdir for the tc file (module) under run_log_dir
+    tc_file_log_dir = os.path.join(
+        run_log_dir, inspect.getmodulename(tc_file.file_name))
+    # if the framework has test_module_setup, test_case_setup (and cleanup)
+    # inform the tc_file about that
+    if getattr(framework, 'framework_module_setup'):
+        tc_file.framework_module_setup = TestCase(framework.framework_module_setup)
+    if getattr(framework, 'framework_module_cleanup'):
+        tc_file.framework_module_cleanup = TestCase(framework.framework_module_cleanup)
+    if getattr(framework, 'framework_case_setup'):
+        tc_file.framework_case_setup = TestCase(framework.framework_case_setup)
+    if getattr(framework, 'framework_case_cleanup'):
+        tc_file.framework_case_cleanup = TestCase(framework.framework_case_cleanup)
+    tc_file.run_test_cases(tc_file_log_dir)
 
 
 def main():
