@@ -46,10 +46,10 @@ class TestCase():
         # store the state of each individual setup/cleanup and run the next one
         # only if the previous state succeeded
         self._state = {
-            "framework_case_setup_tc": "passed",
-            "test_case_setup_tc": "passed",
-            "framework_case_cleanup_tc": "passed",
-            "test_case_cleanup_tc": "passed",
+            "framework_case_setup": "passed",
+            "test_case_setup": "passed",
+            "framework_case_cleanup": "passed",
+            "test_case_cleanup": "passed",
         }
 
     def _run_tc(self, tc: 'TestCase', role: str = "", pre: str = "",
@@ -79,10 +79,11 @@ class TestCase():
                     self._state[post] = "passed"
             else:
                 rlog.info(
-                    f"----Skipping {info_str} as pre-condition {pre} failed")
+                    f"----Skipping {info_str} as pre-condition {pre} failed/skipped")
                 self.logger.info(
-                    f"Skipping {info_str} as pre-condition {pre} failed")
+                    f"Skipping {info_str} as pre-condition {pre} failed/skipped")
                 self.status = "failed"
+                self._state[post] = "skipped"
         except Exception as err:
             self.status = "failed"
             if post:
@@ -102,19 +103,19 @@ class TestCase():
         # run the init/setup functions
         self.framework_case_setup_output = self._run_tc(
             self.framework_case_setup_tc, role='framework_case_setup',
-            pre=None, post='framework_case_setup_tc')
+            pre=None, post='framework_case_setup')
         self.test_case_setup_output = self._run_tc(
             self.test_case_setup_tc, role='test_case_setup',
-            pre='framework_case_setup_tc', post='test_case_setup_tc')
+            pre='framework_case_setup', post='test_case_setup')
         # run the current function
         self.output = self._run_tc(
-            self, role='test_case',
-            pre='test_case_setup_tc', post=None, function_args=self.function_args)
+            self, role='function',
+            pre='test_case_setup', post=None, function_args=self.function_args)
         # run the cleanup functions
         self._run_tc(self.test_case_cleanup_tc, role='test_case_cleanup',
-                     pre='test_case_cleanup_tc', post=None)
+                     pre='test_case_cleanup', post=None)
         self._run_tc(self.framework_case_cleanup_tc, role='framework_case_cleanup',
-                     pre='framework_case_cleanup_tc', post=None)
+                     pre='framework_case_cleanup', post=None)
         # if there is no error so far, the status would have been empty,
         # mark it as passed
         if self.status == "":
