@@ -1,3 +1,7 @@
+import random
+import time
+
+
 def parse_args(parser):
     parser.add_argument('-m', '--num2', help='Number of requests')
 
@@ -8,6 +12,7 @@ def test_case1(tc):
     """
     tc.logger.info('Checking if 1*2 is 2')
     tc.logger.info(f"Args: {tc.args}")
+    time.sleep(random.randint(1, 4))
     _check_product(1, 2, 2)
 
 
@@ -16,6 +21,7 @@ def test_case2(tc):
     Basic sanity test
     """
     tc.logger.info('Checking if 2*2 is 4')
+    time.sleep(random.randint(1, 4))
     _check_product(2, 2, 1)
 
 
