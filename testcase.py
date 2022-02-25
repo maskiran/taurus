@@ -5,16 +5,17 @@ import json
 import logging
 import os
 import traceback
-import types
+from types import FunctionType
+from typing import List
 
 
 class TestCase():
-    def __init__(self, tc_function: types.FunctionType):
+    def __init__(self, tc_function: FunctionType):
         self.file_name: str = inspect.getfile(tc_function)
         self.name: str = tc_function.__name__
         self.full_name: str = inspect.getmodulename(
             self.file_name) + '.' + self.name
-        self.function: types.FunctionType = tc_function
+        self.function: FunctionType = tc_function
         # function is expected to have 1 arg (self).
         # function_args is the extra arguments that will be passed to the
         # function. usually used by framework functions
@@ -51,14 +52,13 @@ class TestCase():
             "test_case_cleanup_tc": "passed",
         }
 
-    def _run_tc(self, tc: 'TestCase', role: str, pre: str, post: str,
-                function_args=None):
-        # this is called multiple times if there are setup and cleanup
-        # functions defined in framework and/or module.
-        # tc could be the setup/cleanup tc or the tc itself.
+    def _run_tc(self, tc: 'TestCase', role: str = "", pre: str = "",
+                post: str = "", function_args: List = None):
+        # tc - TestCase to run
         # role - a help str thats printed defining the role of the tc
         # pre - state key whose value must evaluate to "passed" before the test can run
         # post - state key whose value is set at the end of the test run
+        # function_args - list of args passed to the test function (expanded as *args)
         if not tc:
             return
         if function_args is None:
@@ -72,7 +72,7 @@ class TestCase():
         self.logger.info(f'Running {info_str}')
         output = None
         try:
-            # no pre condition required or if provided it must be passed
+            # no pre condition or precondition has passed
             if pre is None or self._state[pre] == "passed":
                 output = tc.function(self, *function_args)
                 if post:
