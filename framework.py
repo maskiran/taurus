@@ -12,10 +12,17 @@ file, but the team may want to move those into the custom framework so each
 individual user does not have to define in each of the files.)
 """
 
+from argparse import ArgumentParser
+
 from testcase import TestCase
 
 
+def parse_args(parser: ArgumentParser):
+    parser.add_argument('--topology', help='Framework level topology')
+
+
 def framework_module_setup(tc: TestCase):
+    tc.logger.info('framework module args %s', tc.args)
     return {'framework module setup': 'fm-mod'}
 
 
