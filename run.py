@@ -65,9 +65,11 @@ class Runner:
         # to take the parser argument and add arguments to it using
         # (parser.add_argument)
         tc_file_arg_parse_fn(tc_parser)
-        tmp_args, _ = tc_parser.parse_known_args()
+        args, _ = tc_parser.parse_known_args()
         tc_file.arg_parser = tc_parser
-        tc_file.args = tmp_args
+        # test case might also want to know all the arguments passed by the user
+        # for example stop-cleanup, debug etc, so pass everything to the tc
+        tc_file.args = argparse.Namespace(**vars(args), **vars(self.args))
 
     def parse_test_case_files_args(self):
         for tc_file in self.test_case_files:
