@@ -18,12 +18,11 @@ class Runner:
     def __init__(self) -> None:
         self.args: SimpleNamespace = None
         self.parser: argparse.ArgumentParser = None
-        self.framework_args: SimpleNamespace = None
-        self.framework_parser: argparse.ArgumentParser = None
         self.test_case_files: List[TestCaseFile] = []
         self.logger: logging.Logger = None
+        self.framework_module_setup_tc: TestCase = None
 
-    def parse_runner_args(self):
+    def parse_args(self):
         parser = argparse.ArgumentParser(
             add_help=False, usage=argparse.SUPPRESS,
             description="Runner Help"
@@ -41,53 +40,48 @@ class Runner:
             'file_list', nargs='*',
             help='Test Case files, multiple files can be provided'
         )
+        # framework must define a function "parse_args" that takes one
+        # parameter (argumentParser)
+        # and add all the arugments it expects into this parser using
+        # (parser.add_argument)
+        if getattr(framework, 'parse_args', None):
+            framework.parse_args(parser)
         self.args, _ = parser.parse_known_args()
         self.parser = parser
 
-    def parse_framework_args(self):
-        args_fn = getattr(framework, "parse_args", None)
-        if args_fn is None:
+    def parse_test_case_file_args(self, tc_file: TestCaseFile):
+        # check if the test case file defines a function "parse_args".
+        # If defined, call that function with an argumentParser object.
+        # the function must add all the arguments it expects, into this parser
+        tc_file_arg_parse_fn = getattr(tc_file.module, 'parse_args', None)
+        if not tc_file_arg_parse_fn:
             return
-        fw_parser = argparse.ArgumentParser(add_help=False, usage=argparse.SUPPRESS,
-                                            description="Parameters of Framework")
-        framework.parse_args(fw_parser)
-        args, _ = fw_parser.parse_known_args()
-        self.framework_args = args
-        self.framework_parser = fw_parser
+        # create a new parser and let the test case add arguments to this parser
+        tc_parser = argparse.ArgumentParser(
+            add_help=False, usage=argparse.SUPPRESS,
+            description=f"Parameters of Test Case {tc_file.file_name}"
+        )
+        # inside the test case file, the function "parse_args" must be defined
+        # to take the parser argument and add arguments to it using
+        # (parser.add_argument)
+        tc_file_arg_parse_fn(tc_parser)
+        tmp_args, _ = tc_parser.parse_known_args()
+        tc_file.arg_parser = tc_parser
+        tc_file.args = tmp_args
 
-    def parse_test_case_args(self):
+    def parse_test_case_files_args(self):
         for tc_file in self.test_case_files:
-            # check if the test case file defines a function "parse_args".
-            # If defined, call that function with an argumentParser object.
-            # the function adds all the arguments it expects, into this parser
-            tc_file_arg_parse_fn = getattr(tc_file.module, 'parse_args', None)
-            if not tc_file_arg_parse_fn:
-                continue
-            # create a new parser and let the test case add arguments to this parser
-            tc_parser = argparse.ArgumentParser(
-                add_help=False, usage=argparse.SUPPRESS,
-                description=f"Parameters of Test Case {tc_file.file_name}"
-            )
-            # inside the test case file, the function "parse_args" must be defined
-            # to take the parser argument and add arguments to it using
-            # (parser.add_argument)
-            tc_file_arg_parse_fn(tc_parser)
-            tmp_args, _ = tc_parser.parse_known_args()
-            tc_file.arg_parser = tc_parser
-            tc_file.args = tmp_args
+            self.parse_test_case_file_args(tc_file)
 
     def print_help(self):
         self.parser.print_help()
         print("")
-        if self.framework_args:
-            self.framework_parser.print_help()
-            print("")
         for tc_file in self.test_case_files:
             if tc_file.arg_parser:
                 tc_file.arg_parser.print_help()
                 print("")
 
-    def _list_py_files_in_dir(self, dir_name: str) -> List[str]:
+    def list_py_files_in_dir(self, dir_name: str) -> List[str]:
         files_list: List[str] = []
         for fname in os.listdir(dir_name):
             if fname.endswith('.py'):
@@ -98,7 +92,7 @@ class Runner:
         tmp_files_list: List[str] = []
         for fname in self.args.file_list:
             if os.path.isdir(fname):
-                tmp_files_list.extend(self._list_py_files_in_dir(fname))
+                tmp_files_list.extend(self.list_py_files_in_dir(fname))
             else:
                 tmp_files_list.append(fname)
         files_list = tmp_files_list
@@ -119,58 +113,83 @@ class Runner:
         print(tabulate(data, headers=[
               'Id', 'File', 'TestCase', 'Description']))
 
-    def run_test_case_files(self, run_log_dir: str = ""):
+    def create_log_dir(self) -> str:
+        start_time = datetime.datetime.now()
+        cur_ts = start_time.strftime('%Y-%m-%d-%H-%M-%S')
+        run_log_dir = os.path.join('logs', cur_ts)
+        os.makedirs(run_log_dir, exist_ok=True)
+        os.symlink(cur_ts, os.path.join('logs', 'latest'))
+        return run_log_dir
+
+    def run_test_case_files(self, log_dir: str = ""):
         if len(self.test_case_files) == 0:
             return
-        start_time = datetime.datetime.now()
-        if not run_log_dir:
-            cur_ts = start_time.strftime('%Y-%m-%d-%H-%M-%S')
-            run_log_dir = os.path.join('logs', cur_ts)
-            os.makedirs(run_log_dir, exist_ok=True)
-            os.symlink(cur_ts, os.path.join('logs', 'latest'))
-        run_log_dir = os.path.abspath(run_log_dir)
+        if not log_dir:
+            log_dir = self.create_log_dir()
+        log_dir = os.path.abspath(log_dir)
         cwd = os.getcwd()
         for tc_file in self.test_case_files:
             os.chdir(cwd)
             self.logger.info("")
             self.logger.info(f"Planning to run {tc_file.file_name}")
-            self.run_test_case_file(tc_file, run_log_dir)
+            self.run_test_case_file(tc_file, log_dir)
             self.logger.info(f"Completed running {tc_file.file_name}")
             self.logger.info("")
-        end_time = datetime.datetime.now()
-        Report(self.test_case_files, run_log_dir, start_time, end_time)
-        self.logger.info(f"Logs {run_log_dir}")
+        Report(self.test_case_files, log_dir)
+        self.logger.info(f"Logs {log_dir}")
+
+    def run_framework_module_setup(self, tc_file: TestCaseFile, log_dir: str):
+        fn = getattr(framework, 'framework_module_setup', None)
+        if not fn:
+            return
+        self.logger.info(
+            f"--Running framework_module_setup for {tc_file.file_name}")
+        fms_tc = TestCase(fn)
+        self.framework_module_setup_tc = fms_tc
+        # framework gets all the runner/framework args passed on the CLI
+        fms_tc.args = self.args
+        # framework needs to know what test case file/module its working for
+        fms_tc.function_args = [tc_file.module]
+        op = fms_tc.run(log_dir)
+        # update tc_file with the output of the framework module setup
+        tc_file.framework_module_setup_output = op
+        self.logger.info(
+            f"--Completed framework_module_setup for {tc_file.file_name}")
+
+    def run_framework_module_cleanup(self, tc_file: TestCase, log_dir: str):
+        fn = getattr(framework, 'framework_module_cleanup', None)
+        if not fn:
+            return
+        fname = tc_file.file_name
+        self.logger.info(f"--Running framework_module_cleanup for {fname}")
+        TestCase(fn).run(log_dir)
+        self.logger.info(f"--Completed framework_module_cleanup for {fname}")
 
     def run_test_case_file(self, tc_file: TestCaseFile, run_log_dir: str):
         # create a subdir for the tc file (module) under run_log_dir
         tc_file_log_dir = os.path.join(
             run_log_dir, inspect.getmodulename(tc_file.file_name))
-        # run framework module setup before running the
-        if getattr(framework, 'framework_module_setup', None):
-            self.logger.info(f"--Running framework_module_setup for {tc_file.file_name}")
-            fms_tc = TestCase(framework.framework_module_setup)
-            # provide the framework args as the tc args for the module setup
-            fms_tc.args = self.framework_args
-            fms_tc.function_args = [tc_file.module]
-            op = fms_tc.run(tc_file_log_dir)
-            tc_file.framework_module_setup_output = op
-            self.logger.info(f"--Completed framework_module_setup for {tc_file.file_name}")
+        # run framework module setup before running the test case file
+        self.run_framework_module_setup(tc_file, tc_file_log_dir)
+        if self.framework_module_setup_tc and self.framework_module_setup_tc.status != "passed":
+            self.logger.info(f"--Skipping test case file {tc_file.file_name}")
+            return
         # if the framework has test_case_setup (and cleanup)
         # inform the tc_file to run these functions at the start/end
         # of each test case
-        if getattr(framework, 'framework_case_setup', None):
-            tc_file.framework_case_setup_tc = TestCase(
-                framework.framework_case_setup)
-        if getattr(framework, 'framework_case_cleanup', None):
-            tc_file.framework_case_cleanup_tc = TestCase(
-                framework.framework_case_cleanup)
-        self.logger.info(f"--Running {len(tc_file.get_test_cases())} test cases from {tc_file.file_name}")
+        setup_fn = getattr(framework, 'framework_case_setup', None)
+        if setup_fn:
+            tc_file.framework_case_setup_tc = TestCase(setup_fn)
+        cleanup_fn = getattr(framework, 'framework_case_cleanup', None)
+        if cleanup_fn:
+            tc_file.framework_case_cleanup_tc = TestCase(cleanup_fn)
+        tc_count = len(tc_file.get_test_cases())
+        self.logger.info(
+            f"--Found {tc_count} test cases in {tc_file.file_name}")
         tc_file.run_test_cases(tc_file_log_dir)
-        self.logger.info(f"--Completed {len(tc_file.get_test_cases())} test cases from {tc_file.file_name}")
-        if getattr(framework, 'framework_module_cleanup', None):
-            self.logger.info(f"--Running framework_module_cleanup for {tc_file.file_name}")
-            TestCase(framework.framework_module_cleanup).run(tc_file_log_dir)
-            self.logger.info(f"--Completed framework_module_cleanup for {tc_file.file_name}")
+        self.logger.info(
+            f"--Completed {tc_count} test cases in {tc_file.file_name}")
+        self.run_framework_module_cleanup(tc_file, tc_file_log_dir)
 
     def _create_logger(self):
         logger = logging.getLogger("runner")
@@ -184,10 +203,9 @@ class Runner:
         self.logger = logger
 
     def main(self):
-        self.parse_runner_args()
-        self.parse_framework_args()
+        self.parse_args()
         self.load_test_case_files()
-        self.parse_test_case_args()
+        self.parse_test_case_files_args()
         if self.args.list:
             self.print_testcases()
         elif self.args.help:

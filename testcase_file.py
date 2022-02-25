@@ -29,10 +29,12 @@ class TestCaseFile(object):
         self.file_name: str = file_name
         self.module: ModuleType = import_file(file_name)
         self.test_case_list: List[TestCase] = self._load_test_cases()
-        # filled by run.py when it loads the fr
+        # filled by run.py when it loads the framework
         self.framework_module_setup_output = None
         self.framework_case_setup_tc: TestCase = None
         self.framework_case_cleanup_tc: TestCase = None
+        # store this for convenience as its accessed by test case
+        self.test_module_setup_tc: TestCase = None
         # cli argument parser (added by run.py during the run)
         self.arg_parser = None
         self.args = None
@@ -71,42 +73,57 @@ class TestCaseFile(object):
             test_cases.append(tc)
         return test_cases
 
+    def run_test_module_setup(self):
+        self.test_module_setup_tc = self._find_test_case("test_module_setup")
+        if not self.test_module_setup_tc:
+            return
+        self.logger.info(
+            f"--Running test_module_setup from {self.file_name}")
+        # pass the output of the framework module setup into this
+        self.test_module_setup_tc.framework_module_setup_output = self.framework_module_setup_output
+        self.test_module_setup_tc.run(self.log_dir)
+        self.logger.info(
+            f"--Completed test_module_setup from {self.file_name}")
+
+    def run_test_case(self, tc: TestCase):
+        # let the test case know about the other init/cleanup tests that it need to run
+        tc.framework_case_setup_tc = self.framework_case_setup_tc
+        tc.framework_case_cleanup_tc = self.framework_case_cleanup_tc
+        tc.test_case_setup_tc = self._find_test_case("test_case_setup")
+        tc.test_case_cleanup_tc = self._find_test_case("test_case_cleanup")
+        # pass the outputs from the module setups to the test case
+        tc.framework_module_setup_output = self.framework_module_setup_output
+        if self.test_module_setup_tc:
+            tc.test_module_setup_output = self.test_module_setup_tc.output
+        tc.args = self.args
+        self.logger.info(
+            f"--Running test_case {tc.name} from {self.file_name}")
+        tc.run(self.log_dir)
+        self.logger.info(
+            f"--Completed test_case {tc.name} from {self.file_name}")
+
+    def run_test_module_cleanup(self):
+        test_module_cleanup_tc = self._find_test_case("test_module_cleanup")
+        if not test_module_cleanup_tc:
+            return
+        self.logger.info(
+            f"--Running test_module_cleanup from {self.file_name}")
+        test_module_cleanup_tc.run(self.log_dir)
+        self.logger.info(
+            f"--Completed test_module_cleanup from {self.file_name}")
+
     def run_test_cases(self, log_dir) -> None:
         self.log_dir = log_dir
         os.chdir(os.path.dirname(self.file_name))
         self.start_time = datetime.datetime.now()
-        test_module_setup_output = ""
-        test_module_setup_tc = self._find_test_case("test_module_setup")
-        if test_module_setup_tc:
-            self.logger.info(
-                f"--Running test_module_setup from {self.file_name}")
-            # pass the output of the framework module setup into this
-            test_module_setup_tc.framework_module_setup_output = self.framework_module_setup_output
-            test_module_setup_output = test_module_setup_tc.run(self.log_dir)
-            self.logger.info(
-                f"--Completed test_module_setup from {self.file_name}")
+        self.run_test_module_setup()
+        if self.test_module_setup_tc and self.test_module_setup_tc.status != "passed":
+            # dont run other test cases if the module's setup failed
+            self.logger.info(f"--Skipping test case file {self.file_name}")
+            return
         for tc in self.get_test_cases():
-            # let the test case know about the other init/cleanup tests that it need to run
-            tc.framework_case_setup_tc = self.framework_case_setup_tc
-            tc.framework_case_cleanup_tc = self.framework_case_cleanup_tc
-            tc.test_case_setup_tc = self._find_test_case("test_case_setup")
-            tc.test_case_cleanup_tc = self._find_test_case("test_case_cleanup")
-            # pass the outputs from the module setups to the test case
-            tc.framework_module_setup_output = self.framework_module_setup_output
-            tc.test_module_setup_output = test_module_setup_output
-            tc.args = self.args
-            self.logger.info(
-                f"--Running test_case {tc.name} from {self.file_name}")
-            tc.run(self.log_dir)
-            self.logger.info(
-                f"--Completed test_case {tc.name} from {self.file_name}")
-        test_module_cleanup_tc = self._find_test_case("test_module_cleanup")
-        if test_module_cleanup_tc:
-            self.logger.info(
-                f"--Running test_module_cleanup from {self.file_name}")
-            test_module_cleanup_tc.run(self.log_dir)
-            self.logger.info(
-                f"--Completed test_module_cleanup from {self.file_name}")
+            self.run_test_case(tc)
+        self.run_test_module_cleanup()
         self.end_time = datetime.datetime.now()
         self.duration = (self.end_time - self.start_time).total_seconds()
 
