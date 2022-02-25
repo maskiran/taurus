@@ -15,12 +15,11 @@ def test_case_setup(tc):
     tc.logger.info(tc.framework_module_setup_output)
     tc.logger.info(tc.test_module_setup_output)
     tc.logger.info(tc.framework_case_setup_output)
-    return {'test case setup': 'tc-case'}
+    return {'test case setup': 'tc-test'}
 
 
 def test_case_cleanup(tc):
     pass
-
 
 def test_case1(tc):
     """
