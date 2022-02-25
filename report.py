@@ -33,7 +33,8 @@ class Report:
         # get the start and end time from the first and the last file
         self.start_time = self.test_case_files[0].start_time
         self.end_time = self.test_case_files[-1].end_time
-        self.duration = (self.end_time - self.start_time).total_seconds()
+        if self.end_time:
+            self.duration = (self.end_time - self.start_time).total_seconds()
         for tc_file in self.test_case_files:
             for tc in tc_file.get_test_cases():
                 self.total += 1
