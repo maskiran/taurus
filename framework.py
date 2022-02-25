@@ -13,6 +13,7 @@ individual user does not have to define in each of the files.)
 """
 
 from argparse import ArgumentParser
+from types import ModuleType
 
 from testcase import TestCase
 
@@ -21,8 +22,9 @@ def parse_args(parser: ArgumentParser):
     parser.add_argument('--topology', help='Framework level topology')
 
 
-def framework_module_setup(tc: TestCase):
+def framework_module_setup(tc: TestCase, test_case_file_module: ModuleType = None):
     tc.logger.info('framework module args %s', tc.args)
+    tc.logger.info(dir(test_case_file_module))
     return {'framework module setup': 'fm-mod'}
 
 

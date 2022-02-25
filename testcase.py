@@ -14,11 +14,14 @@ class TestCase():
         self.full_name: str = inspect.getmodulename(
             self.file_name) + '.' + self.name
         self.function: types.FunctionType = tc_function
+        # function is expected to have 1 arg (self). function_args is the extra arguments
+        # that will be passed to the function. usually used for framework functions
+        self.function_args = []
         self.description: str = inspect.getdoc(tc_function)
         self.start_time: datetime.datetime = None
         self.end_time: datetime.datetime = None
         self.duration: int = ""
-        self.status: str = ""
+        self.status: str = "passed"
         self.error: str = ""
         self.logger: logging.Logger = ""
         self.log_dir: str = ""
@@ -37,13 +40,13 @@ class TestCase():
         # this test case's run output
         self.output = None
 
-    def _run_and_log_tc_function(self, tc: 'TestCase', help_str: str):
+    def _run_tc(self, tc: 'TestCase', help_str: str, *function_args):
         if not tc:
             return
         rlog = logging.getLogger("runner")
         rlog.info(f"----Running {help_str} for {self.name}")
         self.logger.info(f'Running {help_str} {tc.full_name}')
-        output = tc.function(self)
+        output = tc.function(self, *function_args)
         self.logger.info(f'Completed {help_str} {tc.full_name}')
         rlog.info(f"----Completed {help_str} for {self.name}")
         return output
@@ -54,13 +57,12 @@ class TestCase():
         self.logger.info(f'Start Test Case {self.full_name}')
         try:
             # run the init/setup functions
-            self.framework_case_setup_output = self._run_and_log_tc_function(
+            self.framework_case_setup_output = self._run_tc(
                 self.framework_case_setup_tc, 'framework_case_setup')
-            self.test_case_setup_output = self._run_and_log_tc_function(
+            self.test_case_setup_output = self._run_tc(
                 self.test_case_setup_tc, 'test_case_setup')
             # run the current function
-            self.output = self._run_and_log_tc_function(
-                self, 'test_case_function')
+            self.output = self._run_tc(self, 'test_case_function', *self.function_args)
             self.status = "passed"
         except Exception as err:
             self.status = "failed"
@@ -68,10 +70,9 @@ class TestCase():
             self.logger.exception(err)
         finally:
             # run the cleanup functions
-            self._run_and_log_tc_function(
-                self.test_case_cleanup_tc, 'test_case_cleanup')
-            self._run_and_log_tc_function(
-                self.framework_case_cleanup_tc, 'framework_case_cleanup')
+            self._run_tc(self.test_case_cleanup_tc, 'test_case_cleanup')
+            self._run_tc(self.framework_case_cleanup_tc,
+                         'framework_case_cleanup')
         self.end_time = datetime.datetime.now()
         self.duration = (self.end_time - self.start_time).total_seconds()
         self.logger.info('End test Case %s, Status %s',

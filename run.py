@@ -151,6 +151,7 @@ class Runner:
             fms_tc = TestCase(framework.framework_module_setup)
             # provide the framework args as the tc args for the module setup
             fms_tc.args = self.framework_args
+            fms_tc.function_args = [tc_file.module]
             op = fms_tc.run(tc_file_log_dir)
             tc_file.framework_module_setup_output = op
             self.logger.info(f"--Completed framework_module_setup for {tc_file.file_name}")
