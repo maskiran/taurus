@@ -27,4 +27,9 @@ def test_check_addition_identity(tc):
 python run.py feature1.py
 ```
 
-Look at the [Documentation](docs/index.md) for details
+Look at the Documentation for more details
+
+* [Getting Started](docs/getting-started.md)
+* [Test Case Module - Hooks for  Test Case Developer](docs/test_module.md)
+* [Framework Customization - Hooks for Automation Framework Developer](docs/framework.md)
+* [Test Case Object Properties/Members](docs/test_case_object.md)
