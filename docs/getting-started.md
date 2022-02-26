@@ -81,3 +81,5 @@ python run.py addition.py
 ```
 
 This run fails one test case. Look at the logs directory and notice that there are 2 log files: 1 for each of the test cases. Again take a look at the summary, report.json for more details.
+
+[Next - Test Module Customization](test_module.md)

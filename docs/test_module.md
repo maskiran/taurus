@@ -1,4 +1,4 @@
-# Test Case File (module)
+# Test Case File (Test Module) Customization
 
 The test case file (or test module) defines all the test cases (test_<function_name>). There are other special functions that can defined in this file. 
 
@@ -316,3 +316,14 @@ def test_module_cleanup(tc: TestCase):
     assert os.path.exists(
         tc.test_module_setup_output) != True, f"Directory is still present"
 ```
+
+# Summary
+
+Hooks that can be used by the test case developer:
+
+* function to run once at the start of the module - test_module_setup
+* function run at the start of each test case - test_case_setup
+* function run at the end of each test case - test_case_cleanup
+* function to run once at the end of the module - test_module_cleanup
+
+[Next - Framework Customization](framework.md)
