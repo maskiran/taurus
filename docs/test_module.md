@@ -75,9 +75,9 @@ The first run is done with default parameter value (of 2) and 2nd one with overr
 The parameters are defined at a module (test case file) level. So all the test case functions in the same file have access to parameters
 
 # Test Module Setup (Init/Setup function for the whole module)
-This function is used to run a init/setup function once before running any test cases. This could used to do an initialization, like installing packages, or setting up a topology. The output of the module setup function is available to all the test case functions as **tc.test_module_setup_output**
+This function is used to run a init/setup function **once** before running any test cases. This could used to do an initialization, like installing packages, or setting up a topology. The output of the module setup function is available to all the test case functions as **tc.test_module_setup_output**
 
-The function must be defined as **def test_module_setup(tc: TestCase)**
+Define the function as:
 
 ```python
 def test_module_setup(tc: TestCase):
@@ -114,16 +114,17 @@ def test_case1(tc: TestCase):
 python run.py scale.py
 ```
 
-Check the logs to find the temp directories and files created created
+Check the logs to find the temp directories and files created created. test_module_setup is executed as anothe test case. So it has its own log file in the logs directory.
 
 # Test Module Cleanup (Final/Cleanup function for the whole module)
-Just like a function is provided to do a module level setup, cleanup function is also available to do a module level cleanup. This is run once at the end of all the test cases in the module (test case file). This function has access to the output from the test_module_setup.
+Just like a function is provided to do a module level setup, cleanup function is also available to do a module level cleanup. This is run once at the end of all the test cases in the module (test case file). This function can access the output of test_module_setup just like any other test case.
 
-The function must be defined as **def test_module_cleanup(tc: TestCase)**
+Define the function as:
 
 ```python
 def test_module_cleanup(tc: TestCase):
-    pass
+    # do something with tc.test_module_setup_output
+    return
 ```
 
 Following the example, we will enhance it to delete the directory created by the test_setup_module
@@ -152,6 +153,9 @@ def test_case1(tc: TestCase):
     return tfile[1]
 
 def test_module_cleanup(tc: TestCase):
+    """
+    Delete the temporary directory (and all its contents) that was created by the test_module_setup
+    """
     tc.logger.info(f"Check that the directory exists {tc.test_module_setup_output}")
     if os.path.exists(tc.test_module_setup_output):
         tc.logger.info("Directory exists")
@@ -168,14 +172,14 @@ python run.py scale.py
 # Test Case Setup (function to run at the start of every test case)
 Just like module setup that runs at the start of module (once), a function can be provided that runs at the start of **every** test case. Instead of the developer calling this function explicitly in the code, taurus engine takes care of this call. 
 
-The function must be defined as **def test_case_setup(tc: TestCase)**
+Define the function as:
 
 ```python
 def test_case_setup(tc: TestCase):
     return "output"
 ```
 
-From the previous example, the test case would create a temp file in the directory created by the module_setup. Lets move this code (creation of the temp file) from the test case into the test setup. (This assumes that every test case needs to create a temporary file). The output of the test case setup is accessible to the test case as **tc.test_case_setup_output**
+From the previous example, the test case would create a temp file in the directory created by the module_setup. Move this code (creation of the temp file) from the test case into the test setup. (This assumes that every test case needs a temporary file). The output of the test case setup is accessible to the test case as **tc.test_case_setup_output**
 
 ```python
 import tempfile
@@ -194,6 +198,9 @@ def test_module_setup(tc: TestCase):
 
 
 def test_case_setup(tc: TestCase):
+    """
+    Create a temporary file that can be used by the test case
+    """
     tc.logger.info(f"Output of module_setup {tc.test_module_setup_output}")
     tc.logger.info("Create a temporary file in the above directory")
     tfile = tempfile.mkstemp(dir=tc.test_module_setup_output)
@@ -213,6 +220,9 @@ def test_case2(tc: TestCase):
 
 
 def test_module_cleanup(tc: TestCase):
+    """
+    Delete the temporary directory (and all its contents) that was created by the test_module_setup
+    """
     tc.logger.info(
         f"Check that the directory exists {tc.test_module_setup_output}")
     if os.path.exists(tc.test_module_setup_output):
@@ -234,10 +244,11 @@ Look at the logs for test_case1 and test_case2 and see that both of those got a 
 # Test Case Cleanup (function to run at the end of every test case)
 Just like module cleanup that runs at the end of module (once), a function can be provided that runs at the end of **every** test case. Instead of the developer calling this function explicitly in the code, taurus engine takes care of this call. 
 
-The function must be defined as **def test_case_cleanup(tc: TestCase)**
+Define the function as:
 
 ```python
 def test_case_cleanup(tc: TestCase):
+    # do something with tc.test_case_setup_output
     pass
 ```
 
@@ -260,6 +271,9 @@ def test_module_setup(tc: TestCase):
 
 
 def test_case_setup(tc: TestCase):
+    """
+    Create a temporary file that can be used by the test case
+    """
     tc.logger.info(f"Output of module_setup {tc.test_module_setup_output}")
     tc.logger.info("Create a temporary file in the above directory")
     tfile = tempfile.mkstemp(dir=tc.test_module_setup_output)
@@ -269,6 +283,9 @@ def test_case_setup(tc: TestCase):
 
 
 def test_case_cleanup(tc: TestCase):
+    """
+    Delete the temporary file that was created by the test case setup
+    """
     tc.logger.info(
         f"Remove the temp file created by the test case setup {tc.test_case_setup_output}")
     os.remove(tc.test_case_setup_output)
@@ -285,6 +302,9 @@ def test_case2(tc: TestCase):
 
 
 def test_module_cleanup(tc: TestCase):
+    """
+    Delete the temporary directory (and all its contents) that was created by the test_module_setup
+    """
     tc.logger.info(
         f"Check that the directory exists {tc.test_module_setup_output}")
     if os.path.exists(tc.test_module_setup_output):
