@@ -41,3 +41,25 @@ The output of the functions are accessible to the test cases and cleanup functio
 
 * framework_module_setup output accessible as framework_module_setup_output
 * framework_case_setup output accessible as framework_case_setup_output
+
+
+```python
+def parse_args(parser: ArgumentParser):
+    return
+
+
+def framework_module_setup(tc: TestCase, test_case_file_module: ModuleType = None):
+    return
+
+
+def framework_module_cleanup(tc: TestCase):
+    return
+
+
+def framework_case_setup(tc: TestCase):
+    return
+
+
+def framework_case_cleanup(tc: TestCase):
+    return
+```
