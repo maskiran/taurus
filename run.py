@@ -167,7 +167,9 @@ class Runner:
             return
         fname = tc_file.file_name
         self.logger.info(f"--Running framework_module_cleanup for {fname}")
-        TestCase(fn).run(log_dir)
+        tc = TestCase(fn)
+        tc.framework_module_setup_output = self.framework_module_setup_tc.output
+        tc.run(log_dir)
         self.logger.info(f"--Completed framework_module_cleanup for {fname}")
 
     def run_test_case_file(self, tc_file: TestCaseFile, run_log_dir: str):
