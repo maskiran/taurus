@@ -107,6 +107,10 @@ class TestCaseFile(object):
         test_module_cleanup_tc = self._find_test_case("test_module_cleanup")
         if not test_module_cleanup_tc:
             return
+        if self.test_module_setup_tc:
+            # pass the output of the module_setup, so the cleanup can take care of any cleanup
+            # required for the output
+            test_module_cleanup_tc.test_module_setup_output = self.test_module_setup_tc.output
         self.logger.info(
             f"--Running test_module_cleanup from {self.file_name}")
         test_module_cleanup_tc.run(self.log_dir)
