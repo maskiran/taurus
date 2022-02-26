@@ -1,9 +1,16 @@
-# Test Case File (test_module)
+# Test Case File (module)
 
 The test case file (or test module) defines all the test cases (test_<function_name>). There are other special functions that can defined in this file. 
 
 # Test Case Parameters
-When you write a test case, you may want to pass in parameters during the run time from the CLI. To achieve this define a function **def parse_args(parser)**. The parser is the python standard *argparse.ArgumentParser* instance. You can add parameters using [parser.add_argument](https://docs.python.org/3/library/argparse.html#the-add-argument-method)
+When you write a test case, you may want to pass in parameters during the run time from the CLI. Define a function 
+
+```python
+def parse_args(parser)
+    pass
+```
+
+The parser is the python standard **argparse.ArgumentParser** instance. You can add parameters using [parser.add_argument](https://docs.python.org/3/library/argparse.html#the-add-argument-method)
 
 You may write a test case that might be required to run for a given time period or certain number of iterations, or a test parameters file to login to the databases etc. 
 
