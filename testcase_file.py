@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import inspect
 import importlib.util
@@ -37,7 +38,7 @@ class TestCaseFile(object):
         self.test_module_setup_tc: TestCase = None
         # cli argument parser (added by run.py during the run)
         self.arg_parser = None
-        self.args = None
+        self.args: argparse.Namespace = argparse.Namespace()
         self.log_dir = ""
         self.start_time: datetime.datetime = None
         self.end_time: datetime.datetime = None

@@ -120,6 +120,9 @@ class Runner:
         cur_ts = start_time.strftime('%Y-%m-%d-%H-%M-%S')
         run_log_dir = os.path.join('logs', cur_ts)
         os.makedirs(run_log_dir, exist_ok=True)
+        latest_link = os.path.join('logs', 'latest')
+        if os.path.exists(latest_link):
+            os.remove(latest_link)
         os.symlink(cur_ts, os.path.join('logs', 'latest'))
         return run_log_dir
 

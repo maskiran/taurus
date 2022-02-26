@@ -68,12 +68,14 @@ class Report:
     def generate_summary(self):
         data = f"Total: {self.total}, Passed: {self.passed}, Failed: {self.failed}, Skipped: {self.skipped}\n"
         data += f"Start Time: {self.start_time}, End Time: {self.end_time}\n"
-        data += f"Duration: {self.duration} secs\n\n"
-        data += "Failed/Skipped Test Cases:\n"
-        ftc_data = []
-        for ftc in self.failed_test_cases:
-            ftc_data.append([ftc.full_name, ftc.error or "Skipped"])
-        data += tabulate(ftc_data, headers=['Test Case', 'Reason'], tablefmt="grid")
+        data += f"Duration: {self.duration} secs\n"
+        if len(self.failed_test_cases) > 0:
+            data += "\nFailed/Skipped Test Cases:\n"
+            ftc_data = []
+            for ftc in self.failed_test_cases:
+                ftc_data.append([ftc.full_name, ftc.error or "Skipped"])
+            data += tabulate(ftc_data, headers=['Test Case', 'Reason'], tablefmt="grid")
+            data += "\n"
         summary_file = os.path.join(self.log_dir, 'summary.txt')
         with open(summary_file, 'w') as fd:
             fd.write(data)

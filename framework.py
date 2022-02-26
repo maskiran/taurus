@@ -19,14 +19,11 @@ from testcase import TestCase
 
 
 def parse_args(parser: ArgumentParser):
-    parser.add_argument('--topology', help='Framework level topology')
+    return
 
 
 def framework_module_setup(tc: TestCase, test_case_file_module: ModuleType = None):
-    tc.logger.info('framework module args %s', tc.args)
-    tc.logger.info(dir(test_case_file_module))
-    # raise Exception()
-    return {'framework module setup': 'fm-mod'}
+    return
 
 
 def framework_module_cleanup(tc: TestCase):
@@ -34,10 +31,7 @@ def framework_module_cleanup(tc: TestCase):
 
 
 def framework_case_setup(tc: TestCase):
-    tc.logger.info(tc.framework_module_setup_output)
-    tc.logger.info(tc.test_module_setup_output)
-    # raise Exception()
-    return {'framework case setup': 'fm-test'}
+    return
 
 
 def framework_case_cleanup(tc: TestCase):
