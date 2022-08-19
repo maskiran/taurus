@@ -9,7 +9,7 @@ pip install -r requirements.txt
 ```
 
 # Write a test case
-Open a file *addition.py*
+Open a file */tmp/addition.py*
 
 ```python
 def test_check_addition(tc):
@@ -24,7 +24,7 @@ def test_check_addition_identity(tc):
 
 # Run test cases
 ```
-python run.py feature1.py
+python run.py /tmp/addition.py
 ```
 
 Look at the Documentation for more details
