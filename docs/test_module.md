@@ -1,6 +1,6 @@
 # Test Case File (Test Module) Customization
 
-The test case file (or test module) defines all the test cases (test_<function_name>). There are other special functions that can defined in this file. 
+The test case file (or test module) defines all the test cases (`test_<function_name>`). There are other special functions that can defined in this file. 
 
 # Test Case Parameters
 When you write a test case, you may want to pass in parameters during the run time from the CLI. Define a function 
@@ -12,11 +12,10 @@ def parse_args(parser)
 
 The parser is the python standard **argparse.ArgumentParser** instance. You can add parameters using [parser.add_argument](https://docs.python.org/3/library/argparse.html#the-add-argument-method)
 
-You may write a test case that might be required to run for a given time period or certain number of iterations, or a test parameters file to login to the databases etc. 
-
-Let's write a test case that runs a given number of iterations with a default value. Write the following in a file *scale.py*
+Write a test case that runs for a given number of iterations with a default value. Write the following in a file *scale.py*
 
 ```python
+# import this for type hints
 from argparse import ArgumentParser
 import os
 
@@ -33,7 +32,7 @@ def test_run_date(tc: TestCase):
     Run date command for the given number of times
     """
     for i in range(tc.args.count):
-        tc.logger.info(f"Running date command for {i+1} time")
+        tc.logger.info(f"Iteration: {i+1}")
         os.system('date')
 ```
 
@@ -84,7 +83,7 @@ def test_module_setup(tc: TestCase):
     return "output"
 ```
 
-As an example, we will create a temp directory and let other test cases use this directory, for eg. to store some content, which can also be accessed by the test functions that follow. This can be used to achieve inter test case data transfer.
+As an example, we will create a temp directory and let other test cases use this directory to store some content, which can also be accessed by the test functions that follow. This can be used to achieve test case data transfer among all the test cases.
 
 Create a file scale.py and put the following content
 
@@ -114,12 +113,10 @@ def test_case1(tc: TestCase):
 python run.py scale.py
 ```
 
-Check the logs to find the temp directories and files created created. test_module_setup is executed as anothe test case. So it has its own log file in the logs directory.
+Check the logs to find the temp directories and files created created. test_module_setup is executed as another test case. So it has its own log file in the logs directory.
 
 # Test Module Cleanup (Final/Cleanup function for the whole module)
-Just like a function is provided to do a module level setup, cleanup function is also available to do a module level cleanup. This is run once at the end of all the test cases in the module (test case file). This function can access the output of test_module_setup just like any other test case.
-
-Define the function as:
+Just like a function is provided to do a module level setup, cleanup function is also available to do a module level cleanup. This is run **once** at the end of all the test cases in the module (test case file). This function can access the output of test_module_setup just like any other test case.
 
 ```python
 def test_module_cleanup(tc: TestCase):
@@ -321,9 +318,9 @@ def test_module_cleanup(tc: TestCase):
 
 Hooks that can be used by the test case developer:
 
-* function to run once at the start of the module - test_module_setup
-* function run at the start of each test case - test_case_setup
-* function run at the end of each test case - test_case_cleanup
-* function to run once at the end of the module - test_module_cleanup
+* function to run once at the start of the module - **test_module_setup**
+* function run at the start of each test case - **test_case_setup**
+* function run at the end of each test case - **test_case_cleanup**
+* function to run once at the end of the module - **test_module_cleanup**
 
 [Next - Framework Customization](framework.md)
